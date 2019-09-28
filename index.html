@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Fast Neural Style React</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@15.5.4/dist/react.js"></script>
+  <script src="https://unpkg.com/react-dom@15.5.4/dist/react-dom.js"></script>
+  <script src="https://unpkg.com/prop-types@15.6.1/prop-types.js"></script>
+  <script src="https://unpkg.com/babel-transform-in-browser@6.4.6/dist/btib.min.js"></script>
+  <script src="./dist/react-webcam.js"></script>
+  <script type="text/es2015">
+    // getUserMedia only works for secure pages
+
+    class App extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = {
+          timeout: 500
+        };
+        this.updateImage = this.updateImage.bind(this);
+      }
+
+      componentDidMount() {
+        this.updateImage();
+      }
+
+      updateImage() {
+        const canvas = this.webcam.getCanvas();
+        if (!canvas) {
+          setTimeout(this.updateImage, this.state.timeout);
+          return null;
+        }
+
+        var screenshot = canvas
+          .toDataURL("image/jpeg", 0.92)
+          .replace(/^data:image\/\w+;base64,/, "");
+
+        fetch('/', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            screenshot: screenshot,
+						modelPath: '/saved_models/candy.pth'
+          })
+        })
+
+        var canvas = document.getElementById('canvas');
+        var context = canvas.getContext('2d');
+        var img = new Image();
+
+        img.onload = function() {
+          context.drawImage(this, 0, 0, canvas.width, canvas.height);
+        }
+        img.src = "latest.jpg";
+
+        setTimeout(this.updateImage, this.state.timeout);
+      }
+
+
+      render() {
+        return (
+          <div>
+            <Webcam
+              audio={false}
+              ref={node => this.webcam = node}
+            />
+            <canvas id="canvas" width="640" height="480"></canvas>
+          </div>
+        );
+      }
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
