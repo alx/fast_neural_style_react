@@ -17,14 +17,35 @@
     class App extends React.Component {
       constructor(props) {
         super(props);
+
         this.state = {
-          timeout: 500
-        };
+          timeout : 500,
+          model: './saved_models/candy.pth',
+          modelIndex: 1
+        }
         this.updateImage = this.updateImage.bind(this);
+        this.handleNextModel = this.handleNextModel.bind(this);
       }
 
       componentDidMount() {
+        var output = document.getElementById('latest');
+        var context = output.getContext('2d');
+        this.setState({context: context})
         this.updateImage();
+      }
+
+      handleNextModel() {
+        const modelList = [
+          './saved_models/candy.pth',
+          './saved_models/mosaic.pth',
+          './saved_models/rain_princess.pth',
+          './saved_models/udnie.pth',
+        ];
+
+        this.setState({
+          model: modelList[this.state.modelIndex % modelList.length],
+          modelIndex: this.state.modelIndex + 1
+        })
       }
 
       updateImage() {
@@ -46,31 +67,37 @@
           },
           body: JSON.stringify({
             screenshot: screenshot,
-						modelPath: '/saved_models/candy.pth'
+						model: this.state.model
           })
         })
+        .then((res) => {
+          return res.text();
+        })
+        .then((data) => {
+          var self = this;
+          var img = new Image();
 
-        var canvas = document.getElementById('canvas');
-        var context = canvas.getContext('2d');
-        var img = new Image();
+          img.onload = function() {
+            self.state.context.drawImage(this, 0, 0);
+          }
 
-        img.onload = function() {
-          context.drawImage(this, 0, 0, canvas.width, canvas.height);
-        }
-        img.src = "latest.jpg";
+          img.src = "data:image/jpg;base64," + data;
+          setTimeout(this.updateImage, this.state.timeout);
+       });
 
-        setTimeout(this.updateImage, this.state.timeout);
       }
-
 
       render() {
         return (
           <div>
+            <button onClick={this.handleNextModel}>
+              {this.state.modelIndex} - {this.state.model}
+            </button>
             <Webcam
               audio={false}
               ref={node => this.webcam = node}
             />
-            <canvas id="canvas" width="640" height="480"></canvas>
+            <canvas id="latest" width="640" height="480"></canvas>
           </div>
         );
       }
